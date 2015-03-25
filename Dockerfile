@@ -7,16 +7,14 @@ ADD oracle-xe-11.2.0-1.0.x86_64.rpma* /tmp/
 ADD init.ora /tmp/init.ora
 ADD initXETemp.ora /tmp/initXETemp.ora
 
-# reassemble RPM, install dependencies, configure sshd, install and configure Oracle XE and clean up installation files
-RUN cat /tmp/oracle-xe-11.2.0-1.0.x86_64.rpma* > /tmp/oracle-xe-11.2.0-1.0.x86_64.rpm && \
-    yum update -y && yum install -y bc \
+# install dependencies
+RUN yum install -y bc \
     libaio \
     net-tools \
-    openssh-server && \
-    mkdir /var/run/sshd && \
-    echo 'root:admin' | chpasswd && \
-    sed -i 's/#PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-    ssh-keygen -A && \
+    openssh-server
+
+# reassemble RPM, install and configure Oracle XE and do the cleanup
+RUN cat /tmp/oracle-xe-11.2.0-1.0.x86_64.rpma* > /tmp/oracle-xe-11.2.0-1.0.x86_64.rpm && \
     rpm -ivh /tmp/oracle-xe-11.2.0-1.0.x86_64.rpm && \
     mv /tmp/init.ora /u01/app/oracle/product/11.2.0/xe/config/scripts && \
     mv /tmp/initXETemp.ora /u01/app/oracle/product/11.2.0/xe/config/scripts && \
@@ -26,6 +24,12 @@ RUN cat /tmp/oracle-xe-11.2.0-1.0.x86_64.rpma* > /tmp/oracle-xe-11.2.0-1.0.x86_6
     echo 'export ORACLE_SID=XE' >> /etc/bash.bashrc && \
     chkconfig oracle-xe on && \
     rm /tmp/oracle-xe-11.2.0-1.0.x86_64.rpm*
+
+# configure ssh
+RUN mkdir /var/run/sshd && \
+    echo 'root:admin' | chpasswd && \
+    sed -i 's/#PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    ssh-keygen -A
 
 # Expose ports 22, 1521 and 8080
 EXPOSE 22
